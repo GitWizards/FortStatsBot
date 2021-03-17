@@ -13,7 +13,8 @@ def prepare_result_msg(username, account_type="epic", time_window="lifetime", ma
     if data['status'] != 200:
         rv = f"User *{username}* not found on *{account_type.capitalize()}* platform! 🤷🏼‍♂️🔍"
     else:
-        rv = f"🎖 *Battle pass*: {data['data']['battlePass']['level']}\n\n"
+        rv = f"👤 *Username*: {username}\n"
+        rv += f"🎖 *Battle pass*: {data['data']['battlePass']['level']}\n\n"
 
         # Shortcut
         stats = data['data']['stats']['all'][match_type]
@@ -24,10 +25,10 @@ def prepare_result_msg(username, account_type="epic", time_window="lifetime", ma
             rv += f"📈 *Score*: {stats['score']}\n"
 
             if match_type == 'overall':
-                rv += f"🥇 *Wins*: {stats['wins']}\n"
-                rv += f"🥈 *Top 3*: {stats['top3']}\n"
-                rv += f"🥉 *Top 5*: {stats['top5']}\n"
-                rv += f"🎖 *Top 6*: {stats['top6']}\n"
+                rv += f"👑 *Wins*: {stats['wins']}\n"
+                rv += f"🥇 *Top 3*: {stats['top3']}\n"
+                rv += f"🥈 *Top 5*: {stats['top5']}\n"
+                rv += f"🥉 *Top 6*: {stats['top6']}\n"
                 rv += f"🎖 *Top 10*: {stats['top10']}\n"
                 rv += f"🎖 *Top 12*: {stats['top12']}\n"
                 rv += f"🎖 *Top 25*: {stats['top25']}\n\n"
@@ -55,7 +56,7 @@ def prepare_result_msg(username, account_type="epic", time_window="lifetime", ma
 
             rv += f"💪🏻 *Kills*: {stats['kills']}\n"
             rv += f"💀 *Deaths*: {stats['deaths']}\n"
-            rv += f"🧑‍🚀 *K/D ratio*: {stats['kd']}\n\n"
+            rv += f"🧑‍🚀 *K/D ratio*: {stats['kd']}%\n\n"
 
             rv += f"🕒 *Time played*: {str(timedelta(minutes=stats['minutesPlayed']))[:-3]}"
         else:
