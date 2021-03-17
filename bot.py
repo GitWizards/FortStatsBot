@@ -21,7 +21,9 @@ GET_USERNAME, GET_ACCOUNT_TYPE, GET_TIME_WINDOW, SEND_RESULT = range(4)
 
 
 def start(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text("TODO", parse_mode='Markdown')
+    update.message.reply_text("Hello there! 👋\n\nUse /search to search for a player "
+                              "and /replay to repeat the last search.",
+                              parse_mode='Markdown')
     return
 
 
@@ -104,6 +106,14 @@ def replay_last_search(update: Update, context: CallbackContext) -> None:
     return
 
 
+def send_credits(update: Update, context: CallbackContext) -> None:
+    msg = ("*API developed by*: [Fortnite-API](https://fortnite-api.com/)\n"
+           "*Bot developed by*: [Radeox](https://github.com/radeox)")
+
+    update.message.reply_text(msg, parse_mode="Markdown")
+    return
+
+
 def conversation_fallback(update: Update, context: CallbackContext) -> int:
     update.message.reply_text("*Something went wrong. Try again 😕*",
                               reply_markup=ReplyKeyboardRemove(),
@@ -123,6 +133,7 @@ def main():
     # Add command handlers
     start_handler = CommandHandler('start', start)
     replay_handler = CommandHandler('replay', replay_last_search)
+    credits_handler = CommandHandler('credits', send_credits)
 
     search_handler = ConversationHandler(
         entry_points=[CommandHandler('search', start_search)],
@@ -147,6 +158,7 @@ def main():
     dispatcher.add_handler(start_handler)
     dispatcher.add_handler(search_handler)
     dispatcher.add_handler(replay_handler)
+    dispatcher.add_handler(credits_handler)
 
     # Start the Bot
     updater.start_polling()
