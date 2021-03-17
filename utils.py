@@ -26,7 +26,11 @@ def prepare_result_msg(username, account_type="epic", time_window="lifetime", ma
             if match_type == 'overall':
                 rv += f"🥇 *Wins*: {stats['wins']}\n"
                 rv += f"🥈 *Top 3*: {stats['top3']}\n"
-                rv += f"🥉 *Top 10*: {stats['top10']}\n\n"
+                rv += f"🥉 *Top 5*: {stats['top5']}\n"
+                rv += f"🎖 *Top 6*: {stats['top6']}\n"
+                rv += f"🎖 *Top 10*: {stats['top10']}\n"
+                rv += f"🎖 *Top 12*: {stats['top12']}\n"
+                rv += f"🎖 *Top 25*: {stats['top25']}\n\n"
             elif match_type == 'solo':
                 rv += f"🥇 *Wins*: {stats['wins']}\n"
                 rv += f"🥈 *Top 10*: {stats['top10']}\n"
