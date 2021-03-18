@@ -11,10 +11,10 @@ def prepare_result_msg(username, account_type="epic", time_window="lifetime", ma
     data = json.loads(r.text)
 
     if data['status'] != 200:
-        rv = f"User *{username}* not found on *{account_type.capitalize()}* platform! 🤷🏼‍♂️🔍"
+        rv = f"User *{username.capitalize()}* not found on *{account_type.capitalize()}* platform! 🤷🏼‍♂️🔍"
     else:
-        rv = f"👤 *Username*: {username}\n"
-        rv += f"🎖 *Battle pass*: {data['data']['battlePass']['level']}\n\n"
+        rv = f"👤 *Username*: {username.capitalize()}\n"
+        rv += f"⭐️ *Battle pass*: {data['data']['battlePass']['level']}\n\n"
 
         # Shortcut
         stats = data['data']['stats']['all'][match_type]
@@ -51,12 +51,12 @@ def prepare_result_msg(username, account_type="epic", time_window="lifetime", ma
             elif match_type == 'ltm':
                 rv += f"🥇 *Wins*: {stats['wins']}\n"
 
-            rv += f"🏆 *Win rate*: {stats['winRate']}\n"
+            rv += f"🏆 *Win rate*: {stats['winRate']}%\n"
             rv += f"▶️  *Matches*: {stats['matches']}\n\n"
 
             rv += f"💪🏻 *Kills*: {stats['kills']}\n"
             rv += f"💀 *Deaths*: {stats['deaths']}\n"
-            rv += f"🧑‍🚀 *K/D ratio*: {stats['kd']}%\n\n"
+            rv += f"🧑‍🚀 *K/D ratio*: {stats['kd']}\n\n"
 
             rv += f"🕒 *Time played*: {str(timedelta(minutes=stats['minutesPlayed']))[:-3]}"
         else:
