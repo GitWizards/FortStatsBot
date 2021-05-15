@@ -20,8 +20,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Conversation states
-GET_USERNAME, GET_ACCOUNT_TYPE, GET_TIME_WINDOW, SEND_RESULT, SEND_RESULT_LIST = range(
-    5)
+GET_USERNAME, GET_ACCOUNT_TYPE, GET_TIME_WINDOW, SEND_RESULT, SEND_RESULT_LIST = range(5)
 
 
 def start(update: Update, context: CallbackContext) -> None:
@@ -189,7 +188,7 @@ def replay_last_search(update: Update, context: CallbackContext) -> None:
     return
 
 
-def list_player_saved(update: Update, context: CallbackContext) -> None:
+def list_player_saved(update: Update, context: CallbackContext) -> int:
     with open(store_file, mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
         line_count = 0
@@ -259,8 +258,12 @@ def send_result_list(update: Update, context: CallbackContext) -> int:
 
 
 def send_credits(update: Update, context: CallbackContext) -> None:
-    msg = ("*API developed by*: [Fortnite-API](https://fortnite-api.com/)\n"
-           "*Bot developed by*: [Radeox](https://github.com/radeox)")
+    msg = (
+        "*API developed by*: [Fortnite-API](https://fortnite-api.com/)\n"
+        "*Bot developed by*:\n"
+        "• [Fast0n](https://github.com/fast0n)\n"
+        "• [Radeox](https://github.com/radeox)"
+    )
 
     update.message.reply_text(msg, parse_mode="Markdown")
     return
