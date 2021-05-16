@@ -1,7 +1,10 @@
 import os
 import logging
 import csv
+import urllib3
+import json
 
+from datetime import date
 from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (CallbackQueryHandler, Filters, CommandHandler, ConversationHandler,
@@ -11,6 +14,7 @@ from pid import PidFile
 from utils import prepare_result_msg
 
 store_file = '.store'
+http = urllib3.PoolManager()
 
 # Enable logging
 logging.basicConfig(
@@ -20,7 +24,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Conversation states
-GET_USERNAME, GET_ACCOUNT_TYPE, GET_TIME_WINDOW, SEND_RESULT, SEND_RESULT_LIST = range(5)
+GET_USERNAME, GET_ACCOUNT_TYPE, GET_TIME_WINDOW, SEND_RESULT, SEND_RESULT_LIST = range(
+    5)
 
 
 def start(update: Update, context: CallbackContext) -> None:
@@ -40,7 +45,7 @@ def get_username(update: Update, context: CallbackContext) -> int:
     context.user_data['username'] = response
 
     # Prepare keyboard
-    keyboard = [["Epic"], ["PSN"], ["Xbox"]]
+    keyboard = [["🔲 Epic"], ["🟦 PSN"], ["🟩 Xbox"]]
     markup = ReplyKeyboardMarkup(
         keyboard, one_time_keyboard=True, resize_keyboard=True)
 
@@ -54,7 +59,7 @@ def get_account_type(update: Update, context: CallbackContext) -> int:
     context.user_data['account_type'] = response
 
     # Prepare keyboard
-    keyboard = [["Lifetime"], ["Season"]]
+    keyboard = [["🍃 Lifetime"], [get_json("time_window")+" Season"]]
     markup = ReplyKeyboardMarkup(
         keyboard, one_time_keyboard=True, resize_keyboard=True)
 
@@ -69,8 +74,8 @@ def get_time_window(update: Update, context: CallbackContext) -> int:
     context.user_data['time_window'] = response
 
     # Prepare keyboard
-    keyboard = [["Everything"], ["Solo", "Duo"],
-                ["Trio", "Squad"], ["Limited modes"]]
+    keyboard = [["🔢 Everything"], ["1️⃣ Solo", "2️⃣ Duo"],
+                ["3️⃣ Trio", "4️⃣ Squad"], ["🔐 Limited modes"]]
     markup = ReplyKeyboardMarkup(
         keyboard, one_time_keyboard=True, resize_keyboard=True)
 
@@ -82,18 +87,22 @@ def get_time_window(update: Update, context: CallbackContext) -> int:
 def send_result(update: Update, context: CallbackContext) -> int:
     response = update['message']['text'].lower()
     status = 0
+    if response[:2] == '🔢 ':
+        context.user_data['match_type1'] = response[:2]
+    else:
+        context.user_data['match_type1'] = response[:3] + ' '
 
-    if response == "everything":
+    if response[2:] == "everything":
         context.user_data['match_type'] = "overall"
-    elif response == "limited modes":
+    elif response[2:] == "limited modes":
         context.user_data['match_type'] = "ltm"
     else:
-        context.user_data['match_type'] = response
+        context.user_data['match_type'] = response[4:]
 
     msg = prepare_result_msg(
         context.user_data['username'],
-        context.user_data['account_type'],
-        context.user_data['time_window'],
+        context.user_data['account_type'][2:],
+        context.user_data['time_window'][2:],
         context.user_data['match_type'],
     )
 
@@ -104,8 +113,10 @@ def send_result(update: Update, context: CallbackContext) -> int:
         for row in csv_reader:
             if line_count == 0:
                 line_count += 1
-            if row["user_id"] == str(update['message']['chat']['id']) and row["username"] == context.user_data['username'].capitalize():
-                status = 1
+            if row["user_id"] == str(update['message']['chat']['id']):
+
+                if row["username"] == context.user_data['username'].capitalize() and row["account_type"] == context.user_data['account_type'] and row["time_window"] == context.user_data['time_window']and row["match_type"] == context.user_data['match_type1'] + context.user_data['match_type']:
+                    status = 1
 
             line_count += 1
 
@@ -122,7 +133,7 @@ def send_result(update: Update, context: CallbackContext) -> int:
 
     context.user_data['remove'].delete()
 
-    if not "not found" in msg and status != 1:
+    if not 'found' in msg and status != 1:
         update.message.reply_text(
             msg, reply_markup=reply_markup, parse_mode="Markdown")
     else:
@@ -136,16 +147,18 @@ def save_player_button(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     result = query['message']['reply_markup']['inline_keyboard'][0][0]['text'].lower()
     query.answer()
-    msg = prepare_result_msg(
-        context.user_data['username'],
-        context.user_data['account_type'],
-        context.user_data['time_window'],
-        context.user_data['match_type'],
-    )
 
     if "save" in result:
+        msg = prepare_result_msg(
+            context.user_data['username'],
+            context.user_data['account_type'][2:],
+            context.user_data['time_window'][2:],
+            context.user_data['match_type'],
+        )
+
         store = '{},{},{},{},{}\n'.format(query['message']['chat']['id'], context.user_data['username'].capitalize(
-        ), context.user_data['account_type'], context.user_data['time_window'], context.user_data['match_type'])
+        ), context.user_data['account_type'], context.user_data['time_window'], context.user_data['match_type1'] + context.user_data['match_type'])
+
         file = open(store_file, "a")
         file.write(store)
         file.close()
@@ -161,7 +174,7 @@ def save_player_button(update: Update, context: CallbackContext) -> None:
                 lines.append(row)
                 for field in row:
                     if field == context.user_data['username'].capitalize():
-                        if row[0] == str(query['message']['chat']['id']):
+                        if row[0] == str(query['message']['chat']['id']) and context.user_data['account_type'] in row[2] and context.user_data['time_window'] in row[3] and context.user_data['match_type'] in row[4]:
                             lines.remove(row)
 
         with open(store_file, 'w') as writeFile:
@@ -176,8 +189,8 @@ def replay_last_search(update: Update, context: CallbackContext) -> None:
     try:
         msg = prepare_result_msg(
             context.user_data['username'],
-            context.user_data['account_type'],
-            context.user_data['time_window'],
+            context.user_data['account_type'][2:],
+            context.user_data['time_window'][2:],
             context.user_data['match_type'],
         )
     except KeyError:
@@ -189,6 +202,7 @@ def replay_last_search(update: Update, context: CallbackContext) -> None:
 
 
 def list_player_saved(update: Update, context: CallbackContext) -> int:
+
     with open(store_file, mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
         line_count = 0
@@ -197,8 +211,19 @@ def list_player_saved(update: Update, context: CallbackContext) -> int:
             if line_count == 0:
                 line_count += 1
 
+            if '🔢' in row["match_type"] or '🔐' in row["match_type"]:
+                row_match_type = row["match_type"][:2]
+            else:
+                row_match_type = row["match_type"][:3]
+
+            if not "🍃" in row["time_window"][:2]:
+                row_time_window = get_json("time_window") + " "
+            else:
+                row_time_window = row["time_window"][:2]
+
             if row["user_id"] == str(update['message']['chat']['id']):
-                store.append([row["username"]])
+                store.append(["{} - {}{}{}".format(
+                    row["username"],  row["account_type"][:2], row_time_window, row_match_type)])
             line_count += 1
 
     # Prepare keyboard
@@ -212,49 +237,63 @@ def list_player_saved(update: Update, context: CallbackContext) -> int:
             "*List player is empty 😔*", reply_markup=markup, parse_mode="Markdown")
     else:
         update.message.reply_text(
-            "*Choose player*", reply_markup=markup, parse_mode="Markdown")
+            "*Choose player*\n\n*Platfrom:*\n{}\n\n*Time Type:*\n{}\n\n*Match Type:*\n{}".format("🔲 Epic | 🟦 PSN | 🟩 Xbox", "🍃 Lifetime | "+get_json("time_window")+" Season", "🔢 Everything\n1️⃣ Solo | 2️⃣ Duo | 3️⃣ Trio | 4️⃣ Squad\n🔐 Limited modes"), reply_markup=markup, parse_mode="Markdown")
     return SEND_RESULT_LIST
 
 
 def send_result_list(update: Update, context: CallbackContext) -> int:
-    response = update['message']['text']
+    try:
+        response = update['message']['text']
 
-    with open(store_file, mode='r') as csv_file:
-        csv_reader = csv.DictReader(csv_file)
-        line_count = 0
-        for row in csv_reader:
-            if line_count == 0:
+        with open(store_file, mode='r') as csv_file:
+            csv_reader = csv.DictReader(csv_file)
+            line_count = 0
+            response = response.split(" ")
+
+            for row in csv_reader:
+                if line_count == 0:
+                    line_count += 1
+                context.user_data['username'] = response[0]
+                context.user_data['account_type'] = response[2].replace(
+                    "🔲", "Epic").replace("🟦", "PSN").replace("🟩", "Xbox").lower()
+
+                if response[3] == "🍃":
+                    context.user_data['time_window'] = response[3] = "lifetime"
+                else:
+                    context.user_data['time_window'] = response[3] = "season"
+                context.user_data['match_type'] = response[4].replace("🔢", "overall").replace("1️⃣", "solo").replace(
+                    "2️⃣", "duo").replace("3️⃣", "trio").replace("4️⃣", "squad").replace("🔐", "ltm").lower()
+
                 line_count += 1
-            if row["username"] == response:
-                context.user_data['username'] = row["username"]
-                context.user_data['account_type'] = row["account_type"]
-                context.user_data['time_window'] = row["time_window"]
-                context.user_data['match_type'] = row["match_type"]
 
-            line_count += 1
+        msg = prepare_result_msg(
+            context.user_data['username'],
+            context.user_data['account_type'],
+            context.user_data['time_window'],
+            context.user_data['match_type'],
+        )
 
-    msg = prepare_result_msg(
-        context.user_data['username'],
-        context.user_data['account_type'],
-        context.user_data['time_window'],
-        context.user_data['match_type'],
-    )
-
-    keyboard = [
-        [
-            InlineKeyboardButton("Remove 🗑", callback_data='1')
+        keyboard = [
+            [
+                InlineKeyboardButton("Remove 🗑", callback_data='1')
+            ]
         ]
-    ]
 
-    context.user_data['remove'] = update.message.reply_text(
-        msg, reply_markup=ReplyKeyboardRemove(), parse_mode="Markdown")
+        context.user_data['remove'] = update.message.reply_text(
+            msg, reply_markup=ReplyKeyboardRemove(), parse_mode="Markdown")
 
-    context.user_data['remove'].delete()
+        context.user_data['remove'].delete()
 
-    update.message.reply_text(
-        msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        update.message.reply_text(
+            msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
-    return ConversationHandler.END
+        return ConversationHandler.END
+    except IndexError:
+        msg = "*You have not chosen a player from the list 😕*"
+
+        update.message.reply_text(
+            msg, reply_markup=ReplyKeyboardRemove(), parse_mode="Markdown")
+        return ConversationHandler.END
 
 
 def send_credits(update: Update, context: CallbackContext) -> None:
@@ -274,6 +313,12 @@ def conversation_fallback(update: Update, context: CallbackContext) -> int:
                               reply_markup=ReplyKeyboardRemove(),
                               parse_mode="Markdown")
     return ConversationHandler.END
+
+
+def get_json(what):
+    json_result = http.request('GET', 'https://pastebin.com/raw/HNxPB0zp')
+    json_result = json.loads(json_result.data.decode('utf-8'))
+    return json_result[what]
 
 
 def main():
@@ -299,14 +344,14 @@ def main():
             ],
             GET_ACCOUNT_TYPE: [
                 MessageHandler(Filters.regex(
-                    'Epic|PSN|Xbox'), get_account_type),
+                    '🔲 Epic|🟦 PSN|🟩 Xbox'), get_account_type),
             ],
             GET_TIME_WINDOW: [
                 MessageHandler(Filters.regex(
-                    'Lifetime|Season'), get_time_window),
+                    '🍃 Lifetime|'+get_json("time_window")+' Season'), get_time_window),
             ],
             SEND_RESULT: [
-                MessageHandler(Filters.regex('Everything|Solo|Duo|Trio|Squad|Limited modes'),
+                MessageHandler(Filters.regex('🔢 Everything|1️⃣ Solo|2️⃣ Duo|3️⃣ Trio|4️⃣ Squad|🔐 Limited modes'),
                                send_result),
             ]
         },
