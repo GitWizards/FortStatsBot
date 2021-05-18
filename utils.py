@@ -11,7 +11,7 @@ def prepare_result_msg(username, account_type="epic", time_window="lifetime", ma
     data = json.loads(r.text)
 
     if data['status'] != 200:
-        rv = f"User *{username.capitalize()}* not found on *{account_type.capitalize()}* platform! 🤷🏼‍♂️🔍"
+        rv = f"User *{username.capitalize()}* not found on *{account_type.replace('xbl','xbox').capitalize()}* platform! 🤷🏼‍♂️🔍"
     else:
         rv = f"👤 *Username*: {username.capitalize()}\n"
         rv += f"⭐️ *Battle pass*: {data['data']['battlePass']['level']}\n\n"

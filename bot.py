@@ -6,10 +6,11 @@ import json
 
 from datetime import date
 from dotenv import load_dotenv
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram import InlineQueryResultArticle, InputTextMessageContent, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (CallbackQueryHandler, Filters, CommandHandler, ConversationHandler,
-                          CallbackContext, MessageHandler, Updater)
+                          CallbackContext, MessageHandler, Updater, InlineQueryHandler)
 from pid import PidFile
+from uuid import uuid4
 
 from utils import prepare_result_msg
 
@@ -29,14 +30,14 @@ GET_USERNAME, GET_ACCOUNT_TYPE, GET_TIME_WINDOW, SEND_RESULT, SEND_RESULT_LIST =
 
 
 def start(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text("Hello there! 👋\n\nUse /search to search for a player "
-                              "and /replay to repeat the last search.",
+    update.message.reply_text('Hello there! 👋\n\nUse /search to search for a player '
+                              'and /replay to repeat the last search.',
                               parse_mode='Markdown')
     return
 
 
 def start_search(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text("*Send me the username*", parse_mode="Markdown")
+    update.message.reply_text('*Send me the username*', parse_mode='Markdown')
     return GET_USERNAME
 
 
@@ -45,12 +46,12 @@ def get_username(update: Update, context: CallbackContext) -> int:
     context.user_data['username'] = response
 
     # Prepare keyboard
-    keyboard = [["🔲 Epic"], ["🟦 PSN"], ["🟩 Xbox"]]
+    keyboard = [['🔲 Epic'], ['🟦 PSN'], ['🟩 Xbox']]
     markup = ReplyKeyboardMarkup(
         keyboard, one_time_keyboard=True, resize_keyboard=True)
 
     update.message.reply_text(
-        "*Which platfrom?*", reply_markup=markup, parse_mode="Markdown")
+        '*Which platfrom?*', reply_markup=markup, parse_mode='Markdown')
     return GET_ACCOUNT_TYPE
 
 
@@ -59,13 +60,13 @@ def get_account_type(update: Update, context: CallbackContext) -> int:
     context.user_data['account_type'] = response
 
     # Prepare keyboard
-    keyboard = [["🍃 Lifetime"], [get_json("time_window")+" Season"]]
+    keyboard = [['🍃 Lifetime'], [get_json('time_window')+' Season']]
     markup = ReplyKeyboardMarkup(
         keyboard, one_time_keyboard=True, resize_keyboard=True)
 
-    update.message.reply_text("*Lifetime data or just the current season?*",
+    update.message.reply_text('*Lifetime data or just the current season?*',
                               reply_markup=markup,
-                              parse_mode="Markdown")
+                              parse_mode='Markdown')
     return GET_TIME_WINDOW
 
 
@@ -74,13 +75,13 @@ def get_time_window(update: Update, context: CallbackContext) -> int:
     context.user_data['time_window'] = response
 
     # Prepare keyboard
-    keyboard = [["🔢 Everything"], ["1️⃣ Solo", "2️⃣ Duo"],
-                ["3️⃣ Trio", "4️⃣ Squad"], ["🔐 Limited modes"]]
+    keyboard = [['🔢 Everything'], ['1️⃣ Solo', '2️⃣ Duo'],
+                ['3️⃣ Trio', '4️⃣ Squad'], ['🔐 Limited modes']]
     markup = ReplyKeyboardMarkup(
         keyboard, one_time_keyboard=True, resize_keyboard=True)
 
     update.message.reply_text(
-        "*Match type?*", reply_markup=markup, parse_mode="Markdown")
+        '*Match type?*', reply_markup=markup, parse_mode='Markdown')
     return SEND_RESULT
 
 
@@ -92,16 +93,16 @@ def send_result(update: Update, context: CallbackContext) -> int:
     else:
         context.user_data['match_type1'] = response[:3] + ' '
 
-    if response[2:] == "everything":
-        context.user_data['match_type'] = "overall"
-    elif response[2:] == "limited modes":
-        context.user_data['match_type'] = "ltm"
+    if response[2:] == 'everything':
+        context.user_data['match_type'] = 'overall'
+    elif response[2:] == 'limited modes':
+        context.user_data['match_type'] = 'ltm'
     else:
         context.user_data['match_type'] = response[4:]
 
     msg = prepare_result_msg(
         context.user_data['username'],
-        context.user_data['account_type'][2:],
+        context.user_data['account_type'][2:].replace('xbox', 'xbl'),
         context.user_data['time_window'][2:],
         context.user_data['match_type'],
     )
@@ -113,32 +114,32 @@ def send_result(update: Update, context: CallbackContext) -> int:
         for row in csv_reader:
             if line_count == 0:
                 line_count += 1
-            if row["user_id"] == str(update['message']['chat']['id']):
+            if row['user_id'] == str(update['message']['chat']['id']):
 
-                if row["username"] == context.user_data['username'].capitalize() and row["account_type"] == context.user_data['account_type'] and row["time_window"] == context.user_data['time_window']and row["match_type"] == context.user_data['match_type1'] + context.user_data['match_type']:
+                if row['username'] == context.user_data['username'].capitalize() and row['account_type'] == context.user_data['account_type'].replace('xbox', 'xbl') and row['time_window'] == context.user_data['time_window']and row['match_type'] == context.user_data['match_type1'] + context.user_data['match_type']:
                     status = 1
 
             line_count += 1
 
     keyboard = [
         [
-            InlineKeyboardButton("Save 💾", callback_data='0')
+            InlineKeyboardButton('Save 💾', callback_data='0')
         ]
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     context.user_data['remove'] = update.message.reply_text(
-        msg, reply_markup=ReplyKeyboardRemove(), parse_mode="Markdown")
+        msg, reply_markup=ReplyKeyboardRemove(), parse_mode='Markdown')
 
     context.user_data['remove'].delete()
 
     if not 'found' in msg and status != 1:
         update.message.reply_text(
-            msg, reply_markup=reply_markup, parse_mode="Markdown")
+            msg, reply_markup=reply_markup, parse_mode='Markdown')
     else:
         update.message.reply_text(
-            msg, reply_markup=ReplyKeyboardRemove(), parse_mode="Markdown")
+            msg, reply_markup=ReplyKeyboardRemove(), parse_mode='Markdown')
 
     return ConversationHandler.END
 
@@ -148,7 +149,7 @@ def save_player_button(update: Update, context: CallbackContext) -> None:
     result = query['message']['reply_markup']['inline_keyboard'][0][0]['text'].lower()
     query.answer()
 
-    if "save" in result:
+    if 'save' in result:
         msg = prepare_result_msg(
             context.user_data['username'],
             context.user_data['account_type'][2:],
@@ -159,13 +160,13 @@ def save_player_button(update: Update, context: CallbackContext) -> None:
         store = '{},{},{},{},{}\n'.format(query['message']['chat']['id'], context.user_data['username'].capitalize(
         ), context.user_data['account_type'], context.user_data['time_window'], context.user_data['match_type1'] + context.user_data['match_type'])
 
-        file = open(store_file, "a")
+        file = open(store_file, 'a')
         file.write(store)
         file.close()
 
-        msg = msg + "\n\n*Player saved ✅*"
+        msg = msg + '\n\n*Player saved ✅*'
 
-        query.edit_message_text(msg, parse_mode="Markdown")
+        query.edit_message_text(msg, parse_mode='Markdown')
     else:
         lines = list()
         with open(store_file, 'r') as readFile:
@@ -181,8 +182,8 @@ def save_player_button(update: Update, context: CallbackContext) -> None:
             writer = csv.writer(writeFile)
             writer.writerows(lines)
 
-        msg = "\n\n*Player remove ✅*"
-        query.edit_message_text(msg,  parse_mode="Markdown")
+        msg = '\n\n*Player remove ✅*'
+        query.edit_message_text(msg,  parse_mode='Markdown')
 
 
 def replay_last_search(update: Update, context: CallbackContext) -> None:
@@ -194,10 +195,10 @@ def replay_last_search(update: Update, context: CallbackContext) -> None:
             context.user_data['match_type'],
         )
     except KeyError:
-        msg = "*Can't replay last search 😕*"
+        msg = '*Can\'t replay last search 😕*'
 
     update.message.reply_text(
-        msg, reply_markup=ReplyKeyboardRemove(), parse_mode="Markdown")
+        msg, reply_markup=ReplyKeyboardRemove(), parse_mode='Markdown')
     return
 
 
@@ -211,19 +212,19 @@ def list_player_saved(update: Update, context: CallbackContext) -> int:
             if line_count == 0:
                 line_count += 1
 
-            if '🔢' in row["match_type"] or '🔐' in row["match_type"]:
-                row_match_type = row["match_type"][:2]
+            if '🔢' in row['match_type'] or '🔐' in row['match_type']:
+                row_match_type = row['match_type'][:2]
             else:
-                row_match_type = row["match_type"][:3]
+                row_match_type = row['match_type'][:3]
 
-            if not "🍃" in row["time_window"][:2]:
-                row_time_window = get_json("time_window") + " "
+            if not '🍃' in row['time_window'][:2]:
+                row_time_window = get_json('time_window') + ' '
             else:
-                row_time_window = row["time_window"][:2]
+                row_time_window = row['time_window'][:2]
 
-            if row["user_id"] == str(update['message']['chat']['id']):
-                store.append(["{} - {}{}{}".format(
-                    row["username"],  row["account_type"][:2], row_time_window, row_match_type)])
+            if row['user_id'] == str(update['message']['chat']['id']):
+                store.append(['{} - {}{}{}'.format(
+                    row['username'],  row['account_type'][:2], row_time_window, row_match_type)])
             line_count += 1
 
     # Prepare keyboard
@@ -234,10 +235,10 @@ def list_player_saved(update: Update, context: CallbackContext) -> int:
 
     if not store:
         update.message.reply_text(
-            "*List player is empty 😔*", reply_markup=markup, parse_mode="Markdown")
+            '*List player is empty 😔*', reply_markup=markup, parse_mode='Markdown')
     else:
         update.message.reply_text(
-            "*Choose player*\n\n*Platfrom:*\n{}\n\n*Time Type:*\n{}\n\n*Match Type:*\n{}".format("🔲 Epic | 🟦 PSN | 🟩 Xbox", "🍃 Lifetime | "+get_json("time_window")+" Season", "🔢 Everything\n1️⃣ Solo | 2️⃣ Duo | 3️⃣ Trio | 4️⃣ Squad\n🔐 Limited modes"), reply_markup=markup, parse_mode="Markdown")
+            '*Choose player*\n\n*Platfrom:*\n{}\n\n*Time Type:*\n{}\n\n*Match Type:*\n{}'.format('🔲 Epic | 🟦 PSN | 🟩 Xbox', '🍃 Lifetime | '+get_json('time_window')+' Season', '🔢 Everything\n1️⃣ Solo | 2️⃣ Duo | 3️⃣ Trio | 4️⃣ Squad\n🔐 Limited modes'), reply_markup=markup, parse_mode='Markdown')
     return SEND_RESULT_LIST
 
 
@@ -248,21 +249,21 @@ def send_result_list(update: Update, context: CallbackContext) -> int:
         with open(store_file, mode='r') as csv_file:
             csv_reader = csv.DictReader(csv_file)
             line_count = 0
-            response = response.split(" ")
+            response = response.split(' ')
 
             for row in csv_reader:
                 if line_count == 0:
                     line_count += 1
                 context.user_data['username'] = response[0]
                 context.user_data['account_type'] = response[2].replace(
-                    "🔲", "Epic").replace("🟦", "PSN").replace("🟩", "Xbox").lower()
+                    '🔲', 'Epic').replace('🟦', 'PSN').replace('🟩', 'XBOX').lower()
 
-                if response[3] == "🍃":
-                    context.user_data['time_window'] = response[3] = "lifetime"
+                if response[3] == '🍃':
+                    context.user_data['time_window'] = 'lifetime'
                 else:
-                    context.user_data['time_window'] = response[3] = "season"
-                context.user_data['match_type'] = response[4].replace("🔢", "overall").replace("1️⃣", "solo").replace(
-                    "2️⃣", "duo").replace("3️⃣", "trio").replace("4️⃣", "squad").replace("🔐", "ltm").lower()
+                    context.user_data['time_window'] = 'season'
+                context.user_data['match_type'].replace('🔢', 'overall').replace('1️⃣', 'solo').replace(
+                    '2️⃣', 'duo').replace('3️⃣', 'trio').replace('4️⃣', 'squad').replace('🔐', 'ltm').lower()
 
                 line_count += 1
 
@@ -275,44 +276,118 @@ def send_result_list(update: Update, context: CallbackContext) -> int:
 
         keyboard = [
             [
-                InlineKeyboardButton("Remove 🗑", callback_data='1')
+                InlineKeyboardButton('Remove 🗑', callback_data='1')
             ]
         ]
 
         context.user_data['remove'] = update.message.reply_text(
-            msg, reply_markup=ReplyKeyboardRemove(), parse_mode="Markdown")
+            msg, reply_markup=ReplyKeyboardRemove(), parse_mode='Markdown')
 
         context.user_data['remove'].delete()
 
         update.message.reply_text(
-            msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+            msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
 
         return ConversationHandler.END
     except IndexError:
-        msg = "*You have not chosen a player from the list 😕*"
+        msg = '*You have not chosen a player from the list 😕*'
 
         update.message.reply_text(
-            msg, reply_markup=ReplyKeyboardRemove(), parse_mode="Markdown")
+            msg, reply_markup=ReplyKeyboardRemove(), parse_mode='Markdown')
         return ConversationHandler.END
 
 
 def send_credits(update: Update, context: CallbackContext) -> None:
     msg = (
-        "*API developed by*: [Fortnite-API](https://fortnite-api.com/)\n"
-        "*Bot developed by*:\n"
-        "• [Fast0n](https://github.com/fast0n)\n"
-        "• [Radeox](https://github.com/radeox)"
+        '*API developed by*: [Fortnite-API](https://fortnite-api.com/)\n'
+        '*Bot developed by*:\n'
+        '• [Fast0n](https://github.com/fast0n)\n'
+        '• [Radeox](https://github.com/radeox)'
     )
 
-    update.message.reply_text(msg, parse_mode="Markdown")
+    update.message.reply_text(msg, parse_mode='Markdown')
     return
 
 
 def conversation_fallback(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text("*Something went wrong. Try again 😕*",
+    update.message.reply_text('*Something went wrong. Try again 😕*',
                               reply_markup=ReplyKeyboardRemove(),
-                              parse_mode="Markdown")
+                              parse_mode='Markdown')
     return ConversationHandler.END
+
+
+def inlinequery(update: Update, context: CallbackContext) -> None:
+    '''Handle the inline query.'''
+    query = update.inline_query.query
+    id_user = update.inline_query.from_user.id
+
+    results = []
+
+    with open(store_file, mode='r') as csv_file:
+        season = ''
+        match_type = ''
+        csv_reader = csv.DictReader(csv_file)
+        line_count = 0
+        for row in csv_reader:
+            if line_count == 0:
+                line_count += 1
+
+            if row['user_id'] == str(id_user):
+
+                if '🔢' in row['match_type'] or '🔐' in row['match_type']:
+                    row_match_type = row['match_type'][:2]
+                else:
+                    row_match_type = row['match_type'][:3]
+
+                if not '🍃' in row['time_window'][:2]:
+                    row_time_window = get_json('time_window')
+                else:
+                    row_time_window = row['time_window'][:2]
+
+                if row['time_window'] == '🍃':
+                    season = 'lifetime'
+                else:
+                    season = 'season'
+
+                if str(query).capitalize() in row['username']:
+
+                    msg = prepare_result_msg(
+                        row['username'],
+                        row['account_type'][:2].replace('🔲', 'Epic').replace(
+                            '🟦', 'PSN').replace('🟩', 'Xbox').lower().strip(),
+                        season,
+                        row_match_type.replace('🔢', 'overall').replace('1️⃣', 'solo').replace('2️⃣', 'duo').replace(
+                            '3️⃣', 'trio').replace('4️⃣', 'squad').replace('🔐', 'ltm').lower().strip()
+                    )
+
+                    results.append(article(title=row['username'].capitalize(), description=(
+                        row['account_type'][:2] + ' - ' + row['time_window'][:2]+' - ' + row_match_type), message_text=msg, account_type=row['account_type'][:2]))
+
+                    line_count += 1
+
+    update.inline_query.answer(results)
+
+
+def article(title='', description='', message_text='', account_type='', key=None, reply_markup=None):
+    if account_type.replace('🔲', 'Epic').replace('🟦', 'PSN').replace('🟩', 'Xbox').lower().strip() == 'epic':
+        thumb_url = 'https://cdn2.unrealengine.com/Unreal+Engine%2Feg-logo-filled-1255x1272-0eb9d144a0f981d1cbaaa1eb957de7a3207b31bb.png'
+    elif account_type.replace('🔲', 'Epic').replace('🟦', 'PSN').replace('🟩', 'Xbox').lower().strip() == 'psn':
+        thumb_url = 'https://gmedia.playstation.com/is/image/SIEPDC/ps-family-badge-en-16dec19?$native--t$'
+    else:
+        thumb_url = 'https://www.vhv.rs/dpng/f/212-2123072_eso-png.png'
+
+    return InlineQueryResultArticle(
+        id=key or uuid4(),
+        title=title,
+        description=description,
+        thumb_url=thumb_url,
+        cache_time=2,
+        disable_web_page_preview=True,
+        input_message_content=InputTextMessageContent(
+            message_text=message_text,
+            parse_mode='Markdown'),
+        reply_markup=reply_markup
+    )
 
 
 def get_json(what):
@@ -348,7 +423,7 @@ def main():
             ],
             GET_TIME_WINDOW: [
                 MessageHandler(Filters.regex(
-                    '🍃 Lifetime|'+get_json("time_window")+' Season'), get_time_window),
+                    '🍃 Lifetime|'+get_json('time_window')+' Season'), get_time_window),
             ],
             SEND_RESULT: [
                 MessageHandler(Filters.regex('🔢 Everything|1️⃣ Solo|2️⃣ Duo|3️⃣ Trio|4️⃣ Squad|🔐 Limited modes'),
@@ -368,6 +443,7 @@ def main():
         fallbacks=[MessageHandler(Filters.update, conversation_fallback)],
     )
 
+    dispatcher.add_handler(InlineQueryHandler(inlinequery))
     dispatcher.add_handler(start_handler)
     dispatcher.add_handler(search_handler)
     dispatcher.add_handler(CallbackQueryHandler(save_player_button))
