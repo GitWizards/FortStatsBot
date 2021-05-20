@@ -10,6 +10,9 @@ def prepare_result_msg(username, account_type="epic", time_window="lifetime", ma
                      f"&timeWindow={time_window}")
     data = json.loads(r.text)
 
+    # Santize input
+    username = username.replace('_', '\_')
+
     if data['status'] != 200:
         rv = f"User *{username.capitalize()}* not found on *{account_type.replace('xbl','xbox').capitalize()}* platform! 🤷🏼‍♂️🔍"
     else:
