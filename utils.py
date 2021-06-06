@@ -1,20 +1,62 @@
 import json
 from datetime import timedelta
+from json.decoder import JSONDecodeError
+
 import requests
 
 
-def prepare_result_msg(username, account_type="epic", time_window="lifetime", match_type="overall") -> str:
-    r = requests.get("https://fortnite-api.com/v1/stats/br/v2"
-                     f"?name={username}"
-                     f"&accountType={account_type}"
-                     f"&timeWindow={time_window}")
-    data = json.loads(r.text)
+class MessageConverter:
+    def __init__(self):
+        self.season_icon = self.get_season_icon()
 
-    # Santize input
-    username = username.replace('_', '\_')
+        self.__human_to_machine_strings = {
+            '🔲 Epic': 'epic',
+            '🟦 PSN': 'psn',
+            '🟩 Xbox': 'xbl',
+            '🍃 Lifetime': 'lifetime',
+            f'{self.season_icon} Season': 'season',
+            '🔢 Everything': 'overall',
+            '1️⃣ Solo': 'solo',
+            '2️⃣ Duo': 'duo',
+            '3️⃣ Trio': 'trio',
+            '4️⃣ Squad': 'squad',
+            '🔐 Limited modes': 'ltm',
+        }
+
+        self.__machine_to_human_strings = {
+            v: k for k, v in self.__human_to_machine_strings.items()}
+
+    def get_season_icon(self) -> str:
+        try:
+            return json.loads(requests.get('https://pastebin.com/raw/HNxPB0zp').text)['time_window']
+        except JSONDecodeError:
+            return "❌"
+
+    def human_to_machine(self, human_str) -> str:
+        if human_str in self.__human_to_machine_strings.keys():
+            rv = self.__human_to_machine_strings[human_str]
+        else:
+            rv = "Undefined"
+        return rv
+
+    def machine_to_human(self, machine_str) -> str:
+        if machine_str in self.__machine_to_human_strings.keys():
+            rv = self.__machine_to_human_strings[machine_str]
+        else:
+            rv = "Undefined"
+        return rv
+
+
+def prepare_result_msg(username, account_type="epic", time_window="lifetime", match_type="overall") -> str:
+    data = json.loads(
+        requests.get(
+            "https://fortnite-api.com/v1/stats/br/v2"
+            f"?name={username}&accountType={account_type}&timeWindow={time_window}"
+        ).text
+    )
 
     if data['status'] != 200:
-        rv = f"User *{username.capitalize()}* not found on *{account_type.replace('xbl','xbox').capitalize()}* platform! 🤷🏼‍♂️🔍"
+        rv = f"User *{username.capitalize()}* not found on *{account_type.upper()}* platform! 🤷🏼‍♂️🔍"
     else:
         rv = f"👤 *Username*: {username.capitalize()}\n"
         rv += f"⭐️ *Battle pass*: {data['data']['battlePass']['level']}\n\n"
