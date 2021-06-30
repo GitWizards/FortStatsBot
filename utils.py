@@ -55,10 +55,13 @@ def prepare_result_msg(username, account_type="epic", time_window="lifetime", ma
         ).text
     )
 
+    # Sanitize input
+    username = username.replace('_', '\_').capitalize()
+
     if data['status'] != 200:
-        rv = f"User *{username.capitalize()}* not found on *{account_type.upper()}* platform! 🤷🏼‍♂️🔍"
+        rv = f"User *{username}* not found on *{account_type.upper()}* platform! 🤷🏼‍♂️🔍"
     else:
-        rv = f"👤 *Username*: {username.capitalize()}\n"
+        rv = f"👤 *Username*: {username}\n"
         rv += f"⭐️ *Battle pass*: {data['data']['battlePass']['level']}\n\n"
 
         # Shortcut

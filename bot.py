@@ -48,8 +48,7 @@ def start_search(update: Update, context: CallbackContext) -> int:
 
 def get_username(update: Update, context: CallbackContext) -> int:
     response = update['message']['text']
-    context.user_data['last_search']['username'] = response.replace(
-        '_', '\_').lower()
+    context.user_data['last_search']['username'] = response.lower()
 
     markup = ReplyKeyboardMarkup(
         [['🔲 Epic'], ['🟦 PSN'], ['🟩 Xbox']],
