@@ -293,11 +293,11 @@ def conversation_fallback(update: Update, context: CallbackContext) -> int:
 
 def article(id, title, description, message_text, account_type) -> InlineQueryResultArticle:
     if account_type == 'epic':
-        thumb_url = 'https://gmedia.playstation.com/is/image/SIEPDC/ps-family-badge-en-16dec19?$native--t$'
+        thumb_url = 'https://raw.githubusercontent.com/FastRadeox/FortStatsBot/main/img/logo1.png'
     elif account_type == "psn":
-        thumb_url = 'https://cdn2.unrealengine.com/Unreal+Engine%2Feg-logo-filled-1255x1272-0eb9d144a0f981d1cbaaa1eb957de7a3207b31bb.png'
+        thumb_url = 'https://raw.githubusercontent.com/FastRadeox/FortStatsBot/main/img/logo2.png'
     else:
-        thumb_url = 'https://www.vhv.rs/dpng/f/212-2123072_eso-png.png'
+        thumb_url = 'https://raw.githubusercontent.com/FastRadeox/FortStatsBot/main/img/logo3.png'
 
     return InlineQueryResultArticle(
         id=id,
