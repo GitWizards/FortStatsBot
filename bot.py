@@ -1,8 +1,8 @@
-import logging
 import os
+import logging
+import signal
 
 from dotenv import load_dotenv
-from pid import PidFile
 from telegram import (InlineKeyboardButton, InlineKeyboardMarkup,
                       InlineQueryResultArticle, InputTextMessageContent,
                       ReplyKeyboardMarkup, ReplyKeyboardRemove, Update)
@@ -10,8 +10,10 @@ from telegram.ext import (CallbackContext, CallbackQueryHandler,
                           CommandHandler, ConversationHandler, Filters,
                           InlineQueryHandler, MessageHandler,
                           PicklePersistence, Updater)
+from telegram.error import Conflict
 
 from utils import MessageConverter, prepare_result_msg
+
 
 # Utility to convert messages to more compact form
 mc = MessageConverter()
@@ -336,6 +338,15 @@ def inlinequery(update: Update, context: CallbackContext) -> None:
     return None
 
 
+def error_handler(update: object, context: CallbackContext) -> None:
+    if isinstance(context.error, Conflict):
+        print("[FATAL] Token conflict!")
+        os.kill(os.getpid(), signal.SIGINT)
+    else:
+        print("[ERROR] " + str(context.error))
+        pass
+
+
 def main():
     # Load env variables
     load_dotenv()
@@ -401,6 +412,7 @@ def main():
     dispatcher.add_handler(credits_handler)
     dispatcher.add_handler(CallbackQueryHandler(save_player_button))
     dispatcher.add_handler(InlineQueryHandler(inlinequery))
+    dispatcher.add_error_handler(error_handler)
 
     # Start the Bot
     updater.start_polling()
@@ -408,5 +420,4 @@ def main():
 
 
 if __name__ == '__main__':
-    with PidFile('fort_stats_bot'):
-        main()
+    main()
