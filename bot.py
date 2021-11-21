@@ -1,19 +1,18 @@
-import os
 import logging
+import os
 import signal
 
 from dotenv import load_dotenv
 from telegram import (InlineKeyboardButton, InlineKeyboardMarkup,
                       InlineQueryResultArticle, InputTextMessageContent,
                       ReplyKeyboardMarkup, ReplyKeyboardRemove, Update)
+from telegram.error import Conflict
 from telegram.ext import (CallbackContext, CallbackQueryHandler,
                           CommandHandler, ConversationHandler, Filters,
                           InlineQueryHandler, MessageHandler,
                           PicklePersistence, Updater)
-from telegram.error import Conflict
 
 from utils import MessageConverter, prepare_result_msg
-
 
 # Utility to convert messages to more compact form
 mc = MessageConverter()
@@ -72,7 +71,7 @@ def get_account_type(update: Update, context: CallbackContext) -> int:
         response)
 
     markup = ReplyKeyboardMarkup(
-        [['🍃 Lifetime'], [mc.season_icon + ' Season']],
+        [[mc.season_icon + ' Season'], ['🍃 Lifetime']],
         one_time_keyboard=True,
         resize_keyboard=True
     )
@@ -93,7 +92,7 @@ def get_time_window(update: Update, context: CallbackContext) -> int:
     markup = ReplyKeyboardMarkup(
         [
             ['🔢 Everything'], ['1️⃣ Solo', '2️⃣ Duo'],
-            ['3️⃣ Trio', '4️⃣ Squad'], ['🔐 Limited modes']
+            ['4️⃣ Squad', '🔐 LTM'],
         ],
         one_time_keyboard=True,
         resize_keyboard=True
@@ -196,8 +195,6 @@ def replay_last_search(update: Update, context: CallbackContext) -> None:
 
 
 def list_saved_players(update: Update, context: CallbackContext) -> int:
-    keyboard = []
-
     if 'store' not in context.user_data or context.user_data['store'] == []:
         update.message.reply_text(
             '*List player is empty 😔*',
@@ -206,13 +203,12 @@ def list_saved_players(update: Update, context: CallbackContext) -> int:
         )
         return ConversationHandler.END
 
-    for i, result in enumerate(context.user_data['store'], 1):
-        keyboard.append([
+    keyboard = [[
             f"{i} - {result['username'].capitalize()} - "
             f"{mc.machine_to_human(result['account_type']).split()[0]}"
             f"{mc.machine_to_human(result['time_window']).split()[0]}"
             f"{mc.machine_to_human(result['match_type']).split()[0]}"
-        ])
+        ] for i, result in enumerate(context.user_data['store'], 1)]
 
     markup = ReplyKeyboardMarkup(
         keyboard,
@@ -224,7 +220,7 @@ def list_saved_players(update: Update, context: CallbackContext) -> int:
         '*Choose player*\n\n'
         '*Platfrom:*\n🔲 Epic | 🟦 PSN | 🟩 Xbox\n\n'
         f'*Time Type:*\n🍃 Lifetime | {mc.season_icon} Season\n\n'
-        '*Match Type:*\n🔢 Everything\n1️⃣ Solo | 2️⃣ Duo | 3️⃣ Trio | 4️⃣ Squad\n🔐 Limited modes',
+        '*Match Type:*\n🔢 Everything\n1️⃣ Solo | 2️⃣ Duo | 4️⃣ Squad\n🔐 Limited modes',
         reply_markup=markup,
         parse_mode='Markdown'
     )
@@ -313,10 +309,7 @@ def article(id, title, description, message_text, account_type) -> InlineQueryRe
 
 
 def inlinequery(update: Update, context: CallbackContext) -> None:
-    results = []
-
-    for i, result in enumerate(context.user_data['store'], 1):
-        results.append(article(
+    results = [article(
             id=i,
             title=f"{result['username'].capitalize()}",
             description=(
@@ -332,7 +325,7 @@ def inlinequery(update: Update, context: CallbackContext) -> None:
 
             ),
             account_type=result['account_type'],
-        ))
+        ) for i, result in enumerate(context.user_data['store'], 1)]
 
     update.inline_query.answer(results)
     return None
@@ -344,7 +337,6 @@ def error_handler(update: object, context: CallbackContext) -> None:
         os.kill(os.getpid(), signal.SIGINT)
     else:
         print("[ERROR] " + str(context.error))
-        pass
 
 
 def main():
@@ -386,7 +378,7 @@ def main():
             SEND_RESULT: [
                 MessageHandler(
                     Filters.regex(
-                        '🔢 Everything|1️⃣ Solo|2️⃣ Duo|3️⃣ Trio|4️⃣ Squad|🔐 Limited modes'
+                        '🔢 Everything|1️⃣ Solo|2️⃣ Duo|4️⃣ Squad|🔐 Limited modes'
                     ),
                     send_result
                 ),
