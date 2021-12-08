@@ -28,6 +28,10 @@ logger = logging.getLogger(__name__)
 # Conversation states
 GET_USERNAME, GET_ACCOUNT_TYPE, GET_TIME_WINDOW, SEND_RESULT, SEND_RESULT_LIST = range(5)
 
+# Read API key
+load_dotenv()
+API_KEY = os.environ['API_KEY']
+
 
 def start(update: Update, context: CallbackContext) -> None:
     update.message.reply_text(
@@ -126,6 +130,7 @@ def send_result(update: Update, context: CallbackContext) -> int:
         context.user_data['last_search']['account_type'],
         context.user_data['last_search']['time_window'],
         context.user_data['last_search']['match_type'],
+        API_KEY,
     )
 
     # Remove placeholder message

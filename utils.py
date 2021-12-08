@@ -47,11 +47,12 @@ class MessageConverter:
         return rv
 
 
-def prepare_result_msg(username, account_type="epic", time_window="lifetime", match_type="overall") -> str:
+def prepare_result_msg(username, account_type="epic", time_window="lifetime", match_type="overall", api_key=None) -> str:
     data = json.loads(
         requests.get(
             "https://fortnite-api.com/v1/stats/br/v2"
-            f"?name={username}&accountType={account_type}&timeWindow={time_window}"
+            f"?name={username}&accountType={account_type}&timeWindow={time_window}",
+            headers={"Authorization": api_key}
         ).text
     )
 
