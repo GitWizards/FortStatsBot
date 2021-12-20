@@ -26,7 +26,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Conversation states
-GET_USERNAME, GET_ACCOUNT_TYPE, GET_TIME_WINDOW, SEND_RESULT, SEND_RESULT_LIST = range(5)
+GET_USERNAME, GET_ACCOUNT_TYPE, GET_TIME_WINDOW, SEND_RESULT, SEND_RESULT_LIST = range(
+    5)
 
 # Read API key
 load_dotenv()
@@ -210,11 +211,11 @@ def list_saved_players(update: Update, context: CallbackContext) -> int:
         return ConversationHandler.END
 
     keyboard = [[
-            f"{i} - {result['username'].capitalize()} - "
-            f"{mc.machine_to_human(result['account_type']).split()[0]}"
-            f"{mc.machine_to_human(result['time_window']).split()[0]}"
-            f"{mc.machine_to_human(result['match_type']).split()[0]}"
-        ] for i, result in enumerate(context.user_data['store'], 1)]
+        f"{i} - {result['username'].capitalize()} - "
+        f"{mc.machine_to_human(result['account_type']).split()[0]}"
+        f"{mc.machine_to_human(result['time_window']).split()[0]}"
+        f"{mc.machine_to_human(result['match_type']).split()[0]}"
+    ] for i, result in enumerate(context.user_data['store'], 1)]
 
     markup = ReplyKeyboardMarkup(
         keyboard,
@@ -317,22 +318,22 @@ def article(id, title, description, message_text, account_type) -> InlineQueryRe
 
 def inlinequery(update: Update, context: CallbackContext) -> None:
     results = [article(
-            id=i,
-            title=f"{result['username'].capitalize()}",
-            description=(
-                f"{mc.machine_to_human(result['account_type']).split()[0]} - "
-                f"{mc.machine_to_human(result['time_window']).split()[0]} - "
-                f"{mc.machine_to_human(result['match_type']).split()[0]}"
-            ),
-            message_text=prepare_result_msg(
-                result['username'],
-                result['account_type'],
-                result['time_window'],
-                result['match_type'],
-                API_KEY,
-            ),
-            account_type=result['account_type'],
-        ) for i, result in enumerate(context.user_data['store'], 1)]
+        id=i,
+        title=f"{result['username'].capitalize()}",
+        description=(
+            f"{mc.machine_to_human(result['account_type']).split()[0]} - "
+            f"{mc.machine_to_human(result['time_window']).split()[0]} - "
+            f"{mc.machine_to_human(result['match_type']).split()[0]}"
+        ),
+        message_text=prepare_result_msg(
+            result['username'],
+            result['account_type'],
+            result['time_window'],
+            result['match_type'],
+            API_KEY,
+        ),
+        account_type=result['account_type'],
+    ) for i, result in enumerate(context.user_data['store'], 1)]
 
     update.inline_query.answer(results)
     return None

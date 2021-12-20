@@ -18,13 +18,13 @@ class MessageConverter:
             '🔢 Everything': 'overall',
             '1️⃣ Solo': 'solo',
             '2️⃣ Duo': 'duo',
-            '3️⃣ Trio': 'trio',
             '4️⃣ Squad': 'squad',
             '🔐 Limited modes': 'ltm',
         }
 
         self.__machine_to_human_strings = {
-            v: k for k, v in self.__human_to_machine_strings.items()}
+            v: k for k, v in self.__human_to_machine_strings.items()
+        }
 
     def get_season_icon(self) -> str:
         try:
@@ -33,24 +33,24 @@ class MessageConverter:
             return "❌"
 
     def human_to_machine(self, human_str) -> str:
-        if human_str in self.__human_to_machine_strings.keys():
-            rv = self.__human_to_machine_strings[human_str]
-        else:
-            rv = "Undefined"
-        return rv
+        return (
+            self.__human_to_machine_strings[human_str]
+            if human_str in self.__human_to_machine_strings.keys()
+            else "Undefined"
+        )
 
     def machine_to_human(self, machine_str) -> str:
-        if machine_str in self.__machine_to_human_strings.keys():
-            rv = self.__machine_to_human_strings[machine_str]
-        else:
-            rv = "Undefined"
-        return rv
+        return (
+            self.__machine_to_human_strings[machine_str]
+            if machine_str in self.__machine_to_human_strings.keys()
+            else "Undefined"
+        )
 
 
 def prepare_result_msg(username, account_type="epic", time_window="lifetime", match_type="overall", api_key=None) -> str:
     data = json.loads(
         requests.get(
-            "https://fortnite-api.com/v1/stats/br/v2"
+            "https://fortnite-api.com/v2/stats/br/v2"
             f"?name={username}&accountType={account_type}&timeWindow={time_window}",
             headers={"Authorization": api_key}
         ).text
@@ -89,10 +89,6 @@ def prepare_result_msg(username, account_type="epic", time_window="lifetime", ma
                 rv += f"🥇 *Wins*: {stats['wins']}\n"
                 rv += f"🥈 *Top 5*: {stats['top5']}\n"
                 rv += f"🥉 *Top 12*: {stats['top12']}\n\n"
-            elif match_type == 'trio':
-                rv += f"🥇 *Wins*: {stats['wins']}\n"
-                rv += f"🥈 *Top 3*: {stats['top3']}\n"
-                rv += f"🥉 *Top 6*: {stats['top6']}\n\n"
             elif match_type == 'squad':
                 rv += f"🥇 *Wins*: {stats['wins']}\n"
                 rv += f"🥈 *Top 3*: {stats['top3']}\n"
@@ -102,11 +98,9 @@ def prepare_result_msg(username, account_type="epic", time_window="lifetime", ma
 
             rv += f"🏆 *Win rate*: {stats['winRate']}%\n"
             rv += f"▶️  *Matches*: {stats['matches']}\n\n"
-
             rv += f"💪🏻 *Kills*: {stats['kills']}\n"
             rv += f"💀 *Deaths*: {stats['deaths']}\n"
             rv += f"🧑‍🚀 *K/D ratio*: {stats['kd']}\n\n"
-
             rv += f"🕒 *Time played*: {str(timedelta(minutes=stats['minutesPlayed']))[:-3]}"
         else:
             rv += "*No data found for this game type!*"
