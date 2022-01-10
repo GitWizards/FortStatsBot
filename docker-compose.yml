@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  api:
+  bot:
     build: .
     command: python bot.py
     env_file:
