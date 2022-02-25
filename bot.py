@@ -236,7 +236,7 @@ def list_saved_players(update: Update, context: CallbackContext) -> int:
 
 def send_result_list(update: Update, context: CallbackContext) -> int:
     try:
-        index = (int(update['message']['text'][0]) - 1)
+        index = (int(update['message']['text'].split('-')[0].strip()) - 1)
     except ValueError:
         update.message.reply_text(
             'Something went wrong 😕',
