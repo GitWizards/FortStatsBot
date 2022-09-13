@@ -67,8 +67,12 @@ def prepare_result_msg(
     # Sanitize input
     username = username.replace("_", "\_").capitalize()
 
-    if data["status"] != 200:
+    if data["status"] == 403:
+        rv = f"User *{username}* stats are not public 😔"
+
+    elif data["status"] != 200:
         rv = f"User *{username}* not found on *{account_type.upper()}* platform! 🤷🏼‍♂️🔍"
+
     else:
         rv = f"👤 *Username*: {username}\n"
         rv += f"⭐️ *Battle pass*: {data['data']['battlePass']['level']}\n\n"
